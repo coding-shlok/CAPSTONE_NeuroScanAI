@@ -1,0 +1,29 @@
+# ml/ and backend/ run as one deployable unit (Section 10's backend
+# container bundles "fastapi + ml code, uvicorn"), so one requirements file
+# covers both. Versions pinned to what's been tested against this codebase —
+# note torch here is CPU-only (installed from the default PyPI index); swap
+# for a CUDA build only if training moves off CPU.
+
+# --- ml/ ---
+torch==2.13.0
+mne==1.12.1
+edfio==0.4.16
+numpy==2.4.6
+scipy==1.17.1
+scikit-learn==1.9.0
+pandas==3.0.5
+matplotlib==3.11.1
+PyYAML==6.0.1
+
+# --- backend/ ---
+fastapi==0.141.1
+uvicorn[standard]==0.52.0
+sqlalchemy==2.0.51
+pydantic==2.13.4
+pydantic-settings==2.14.2
+python-multipart==0.0.32
+email-validator==2.3.0
+
+# --- tests ---
+pytest==9.1.1
+httpx==0.28.1

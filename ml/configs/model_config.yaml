@@ -1,0 +1,17 @@
+# Shared backbone + multi-task head architecture (Section 5.3/5.4).
+# n_channels must match len(common_channels) in preprocessing_config.yaml.
+
+n_channels: 19
+disorders:
+  - epilepsy
+  - adhd
+  - mci
+
+backbone:
+  cnn_channels: [32, 64, 128]
+  cnn_kernel_size: 7
+  lstm_hidden: 128
+  embedding_dim: 256
+
+heads:
+  hidden_dim: 64

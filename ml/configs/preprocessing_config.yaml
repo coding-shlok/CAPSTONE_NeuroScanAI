@@ -1,0 +1,61 @@
+# Preprocessing parameters for the EEG standardization pipeline.
+# Every stage in ml/preprocessing/pipeline.py reads its parameters from here —
+# nothing should be hard-coded in the pipeline code itself (Section 5.2 of the MVP spec).
+
+# Common montage all three source datasets get mapped onto. Using the
+# 10-20 system subset shared across CHB-MIT, ADHD-200 and OpenNeuro ds003490.
+common_channels:
+  - Fp1
+  - Fp2
+  - F3
+  - F4
+  - F7
+  - F8
+  - Fz
+  - C3
+  - C4
+  - Cz
+  - T3
+  - T4
+  - T5
+  - T6
+  - P3
+  - P4
+  - Pz
+  - O1
+  - O2
+
+# Band-pass filter (Hz)
+bandpass:
+  low_freq: 0.5
+  high_freq: 45.0
+
+# Notch filter (mains hum). Configurable by dataset region — 60 Hz for
+# US-sourced datasets (CHB-MIT, ADHD-200), 50 Hz for others.
+notch:
+  freq_by_region:
+    us: 60.0
+    eu: 50.0
+  default_region: us
+
+# ICA-based artifact removal
+ica:
+  n_components: 15
+  method: fastica
+  random_state: 42
+  # Components correlated with frontal channels above this threshold are
+  # treated as EOG/blink artifacts and excluded.
+  eog_corr_threshold: 0.5
+
+# Resampling
+resample:
+  target_sfreq: 128.0
+
+# Per-channel normalization
+normalize:
+  method: zscore
+
+# Windowing
+windowing:
+  window_seconds: 4.0
+  overlap_seconds: 0.0

@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# ML artifacts
+ml/checkpoints/*.pt
+ml/checkpoints/*.json
+ml/checkpoints/*.jsonl
+
+# Data (Section 6: local datasets, gitignored)
+data/*
+!data/README.md
+
+# Frontend
+node_modules/
+frontend/dist/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Env
+.env

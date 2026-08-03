@@ -1,0 +1,36 @@
+# 3 services (Section 10). Backend bundles the FastAPI app and the ml/ code
+# together, since they run as one process (uvicorn) per Section 3's
+# architecture — there is no separate ML microservice.
+#
+# Dockerfiles are not written yet: per the build order (Section 11), Docker
+# packaging is a Week 7-8 deliverable, after the backend/frontend exist to
+# package. This compose file records the target shape now so it's easy to
+# fill in later without re-deciding the topology.
+
+services:
+  frontend:
+    build: ../frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  backend:
+    build: ../backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../data:/app/data
+    environment:
+      NEUROSCAN_DATABASE_URL: sqlite:////app/data/neuroscan.db
+
+  # Optional: swap the sqlite file above for this Postgres service if
+  # preferred (Section 8 says either is fine for MVP).
+  # db:
+  #   image: postgres:16
+  #   environment:
+  #     POSTGRES_DB: neuroscan
+  #     POSTGRES_USER: neuroscan
+  #     POSTGRES_PASSWORD: neuroscan
+  #   volumes:
+  #     - db_data:/var/lib/postgresql/data
