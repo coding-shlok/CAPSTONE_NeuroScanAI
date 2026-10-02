@@ -23,7 +23,7 @@ class CNNEncoder(nn.Module):
     sliding over time, producing a stack of learned filter responses.
     """
 
-    def __init__(self, n_channels: int, conv_channels: list[int], kernel_size: int):
+    def __init__(self, n_channels: int, conv_channels: list[int], kernel_size: int, dropout: float = 0.0):
         super().__init__()
         conv_layers = []
         blocks = []
@@ -32,7 +32,7 @@ class CNNEncoder(nn.Module):
             conv = nn.Conv1d(in_ch, out_ch, kernel_size, padding=kernel_size // 2)
             conv_layers.append(conv)
             blocks.append(
-                nn.Sequential(conv, nn.BatchNorm1d(out_ch), nn.ReLU(), nn.MaxPool1d(2))
+                nn.Sequential(conv, nn.BatchNorm1d(out_ch), nn.ReLU(), nn.MaxPool1d(2), nn.Dropout(dropout))
             )
             in_ch = out_ch
         self.blocks = nn.ModuleList(blocks)
@@ -64,15 +64,17 @@ class SharedBackbone(nn.Module):
         cnn_kernel_size: int,
         lstm_hidden: int,
         embedding_dim: int,
+        dropout: float = 0.0,
     ):
         super().__init__()
-        self.cnn = CNNEncoder(n_channels, cnn_channels, cnn_kernel_size)
+        self.cnn = CNNEncoder(n_channels, cnn_channels, cnn_kernel_size, dropout=dropout)
         self.lstm = nn.LSTM(
             input_size=self.cnn.out_dim,
             hidden_size=lstm_hidden,
             batch_first=True,
             bidirectional=True,
         )
+        self.dropout = nn.Dropout(dropout)
         self.proj = nn.Linear(lstm_hidden * 2, embedding_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -83,6 +85,7 @@ class SharedBackbone(nn.Module):
         window_features = window_features.view(batch, n_windows, -1)
         lstm_out, _ = self.lstm(window_features)  # [batch, n_windows, 2 * lstm_hidden]
         pooled = lstm_out.mean(dim=1)  # temporal pooling across windows
+        pooled = self.dropout(pooled)
         embedding = self.proj(pooled)  # [batch, embedding_dim]
         return embedding
 
@@ -94,4 +97,5 @@ class SharedBackbone(nn.Module):
             cnn_kernel_size=config.cnn_kernel_size,
             lstm_hidden=config.lstm_hidden,
             embedding_dim=config.embedding_dim,
+            dropout=config.dropout,
         )

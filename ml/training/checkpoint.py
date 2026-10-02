@@ -18,8 +18,14 @@ class CheckpointManager:
         self.best_metric_path = self.checkpoint_dir / "best_metric.json"
 
     def save_epoch(
-        self, model: nn.Module, optimizer: torch.optim.Optimizer, epoch: int, val_loss: float
+        self, model: nn.Module, optimizer: torch.optim.Optimizer, epoch: int, val_loss: float,
+        metric_name: str = "val_loss",
     ) -> Path:
+        """`val_loss` is whatever scalar the caller wants "lower is better"
+        selection on -- literal BCE val_loss by default, but train.py may pass
+        a different composite score instead (see its CLINICAL_TARGETS logic).
+        `metric_name` is stored alongside purely so best_metric.json stays
+        self-documenting about which one was actually used."""
         path = self.checkpoint_dir / f"checkpoint_epoch_{epoch:03d}.pt"
         torch.save(
             {
@@ -44,7 +50,7 @@ class CheckpointManager:
                 best_path,
             )
             self.best_metric_path.write_text(
-                json.dumps({"epoch": epoch, "val_loss": val_loss})
+                json.dumps({"epoch": epoch, "val_loss": val_loss, "metric_name": metric_name})
             )
         return path
 

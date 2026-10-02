@@ -13,11 +13,12 @@ class TaskHead(nn.Module):
     """Binary risk classifier for one disorder. Outputs a single logit —
     sigmoid(logit) is the risk probability."""
 
-    def __init__(self, embedding_dim: int, hidden_dim: int):
+    def __init__(self, embedding_dim: int, hidden_dim: int, dropout: float = 0.0):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(embedding_dim, hidden_dim),
             nn.ReLU(),
+            nn.Dropout(dropout),
             nn.Linear(hidden_dim, 1),
         )
 
@@ -26,11 +27,11 @@ class TaskHead(nn.Module):
 
 
 class MultiTaskHeads(nn.Module):
-    def __init__(self, embedding_dim: int, disorders: list[str], hidden_dim: int):
+    def __init__(self, embedding_dim: int, disorders: list[str], hidden_dim: int, dropout: float = 0.0):
         super().__init__()
         self.disorders = list(disorders)
         self.heads = nn.ModuleDict(
-            {d: TaskHead(embedding_dim, hidden_dim) for d in self.disorders}
+            {d: TaskHead(embedding_dim, hidden_dim, dropout=dropout) for d in self.disorders}
         )
 
     def forward(

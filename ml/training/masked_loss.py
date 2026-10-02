@@ -24,6 +24,7 @@ def masked_multi_task_step(
     labels: torch.Tensor,
     dataset_id: str,
     pos_weight: torch.Tensor | None = None,
+    dataset_loss_weight: float | None = None,
 ) -> torch.Tensor:
     """One training step's loss for a single-dataset batch.
 
@@ -32,8 +33,16 @@ def masked_multi_task_step(
     Returns a scalar loss ready for `.backward()`. Only `dataset_id`'s head
     is evaluated (model.forward masks the rest), so `.backward()` on this
     loss leaves every other head's gradient at None for this step.
+
+    `dataset_loss_weight` scales the resulting scalar loss (not the
+    per-sample BCE terms, which `pos_weight` already handles) — it's the
+    training_config.yaml `inter_dataset_loss_weights` knob, applied on top
+    of pos_weight rather than instead of it.
     """
     head_out = model(tensor, dataset_id=dataset_id)  # {dataset_id: logits [batch]}
     logits = head_out[dataset_id]
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-    return criterion(logits, labels)
+    loss = criterion(logits, labels)
+    if dataset_loss_weight is not None:
+        loss = loss * dataset_loss_weight
+    return loss

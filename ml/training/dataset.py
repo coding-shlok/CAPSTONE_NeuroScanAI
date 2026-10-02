@@ -76,22 +76,50 @@ class PerDatasetBatchSampler(Sampler[list[int]]):
 
     def __iter__(self):
         rng = random.Random(self.seed + self.epoch)
-        batches: list[list[int]] = []
-        for _, indices in self.groups.items():
+
+        per_dataset_batches: dict[str, list[list[int]]] = {}
+        for did, indices in self.groups.items():
             indices = list(indices)
             if self.shuffle:
                 rng.shuffle(indices)
-            for i in range(0, len(indices), self.batch_size):
-                batches.append(indices[i : i + self.batch_size])
+            per_dataset_batches[did] = [
+                indices[i : i + self.batch_size] for i in range(0, len(indices), self.batch_size)
+            ]
+
+        # Datasets differ wildly in row count AND in what a row represents
+        # (ADHD/MCI: one row per whole recording; epilepsy: one row per
+        # window) so raw batch counts aren't comparable across datasets —
+        # slicing by batch_size alone let epilepsy outnumber ADHD/MCI by
+        # 15-30x. Equalize to the largest dataset's natural batch count by
+        # cycling (with reshuffling each lap) so every dataset contributes
+        # the same number of gradient updates to the shared backbone.
+        target = max((len(b) for b in per_dataset_batches.values()), default=0)
+
+        all_batches: list[list[int]] = []
+        for batches in per_dataset_batches.values():
+            if not batches:
+                continue
+            cycled: list[list[int]] = []
+            while len(cycled) < target:
+                lap = list(batches)
+                if self.shuffle:
+                    rng.shuffle(lap)
+                cycled.extend(lap)
+            all_batches.extend(cycled[:target])
+
         if self.shuffle:
-            rng.shuffle(batches)
-        yield from batches
+            rng.shuffle(all_batches)
+        yield from all_batches
 
     def __len__(self) -> int:
-        return sum(
+        if not self.groups:
+            return 0
+        per_dataset_counts = [
             (len(indices) + self.batch_size - 1) // self.batch_size
             for indices in self.groups.values()
-        )
+        ]
+        target = max(per_dataset_counts)
+        return target * len(self.groups)
 
 
 def collate_single_dataset_batch(batch):

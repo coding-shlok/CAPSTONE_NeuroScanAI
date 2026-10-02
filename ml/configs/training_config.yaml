@@ -7,14 +7,31 @@ optimizer:
   learning_rate: 0.001
   weight_decay: 0.0
 
-batch_size: 8
-epochs: 10
+batch_size: 32
+epochs: 50
+
+# Early-stopping patience (epochs without improvement on the worst-disorder
+# target-achievement metric -- see train.py's CLINICAL_TARGETS) before
+# training stops. Widened from an earlier, much tighter value after the
+# 2026-09-26 run showed per-disorder val metrics still improving well past
+# where a short patience would have cut training off.
+patience: 20
 
 # Per-disorder positive-class weighting for BCEWithLogitsLoss, to compensate
 # for class imbalance in the real datasets (e.g. seizure-positive windows
-# are rare in CHB-MIT). 1.0 = no reweighting; tune once real label
-# distributions are known.
+# are rare in CHB-MIT). 1.0 = no reweighting. Recompute per-dataset from the
+# real training manifest with `python -m ml.training.class_balance
+# --manifest <path> --dataset-id <id>` rather than guessing a value here.
 loss_weighting:
+  epilepsy: 1.0
+  adhd: 1.0
+  mci: 1.0
+
+# Optional extra per-dataset scaling of the already-pos_weight-ed loss
+# before backward(), applied on top of loss_weighting above. 1.0 = no change;
+# kept neutral here since the composite checkpoint-selection metric in
+# train.py already balances the three disorders at the selection step.
+inter_dataset_loss_weights:
   epilepsy: 1.0
   adhd: 1.0
   mci: 1.0

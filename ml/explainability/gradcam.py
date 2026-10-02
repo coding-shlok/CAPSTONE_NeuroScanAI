@@ -63,10 +63,19 @@ class GradCAM:
         self.model.zero_grad(set_to_none=True)
         x = x.clone().detach().requires_grad_(True)
 
-        head_out = self.model(x, dataset_id=dataset_id)
-        logit = head_out[dataset_id][0]
-        probability = torch.sigmoid(logit).item()
-        logit.backward()
+        # cuDNN's RNN backward refuses to run against activations produced in
+        # eval mode (model.eval() disables dropout, which cuDNN's fused
+        # LSTM kernel treats as an unsupported configuration for backward on
+        # GPU) -- raises "RuntimeError: cudnn RNN backward can only be called
+        # in training mode" despite this being correct, intentional inference
+        # behavior. Invisible on CPU, where there's no cuDNN kernel involved.
+        # Disabling cuDNN just for this forward+backward falls back to a
+        # slower but fully-supported kernel; numerically identical result.
+        with torch.backends.cudnn.flags(enabled=False):
+            head_out = self.model(x, dataset_id=dataset_id)
+            logit = head_out[dataset_id][0]
+            probability = torch.sigmoid(logit).item()
+            logit.backward()
 
         temporal_heatmap = self._temporal_heatmap(x.shape[1], x.shape[-1])
         channel_importance = self._channel_importance(x, channel_names)
@@ -96,7 +105,8 @@ class GradCAM:
 
         # Windows are consecutive, non-overlapping segments of one recording;
         # concatenating gives one heatmap spanning the full trace.
-        return cam_upsampled.reshape(-1).numpy()
+        # .cpu() first: a CUDA tensor can't convert to numpy directly.
+        return cam_upsampled.reshape(-1).cpu().numpy()
 
     def _channel_importance(
         self, x: torch.Tensor, channel_names: list[str]

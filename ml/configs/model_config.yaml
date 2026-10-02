@@ -12,6 +12,12 @@ backbone:
   cnn_kernel_size: 7
   lstm_hidden: 128
   embedding_dim: 256
+  # Reduced from an initial 0.3: with 0.3 the shared backbone under-fit all
+  # three heads simultaneously (joint training has less effective data per
+  # step per disorder than single-task training would). 0.1 still regularizes
+  # against overfitting the majority dataset without starving the others.
+  dropout: 0.1
 
 heads:
   hidden_dim: 64
+  dropout: 0.1

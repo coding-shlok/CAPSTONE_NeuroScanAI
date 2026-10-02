@@ -15,11 +15,13 @@ class BackboneConfig:
     cnn_kernel_size: int
     lstm_hidden: int
     embedding_dim: int
+    dropout: float = 0.0
 
 
 @dataclass
 class HeadsConfig:
     hidden_dim: int
+    dropout: float = 0.0
 
 
 @dataclass
@@ -28,6 +30,7 @@ class ModelConfig:
     disorders: list[str]
     backbone: BackboneConfig
     heads: HeadsConfig
+    native_channels: dict[str, int]
 
     @classmethod
     def from_yaml(cls, path: str | Path = DEFAULT_CONFIG_PATH) -> "ModelConfig":
@@ -38,4 +41,5 @@ class ModelConfig:
             disorders=raw["disorders"],
             backbone=BackboneConfig(**raw["backbone"]),
             heads=HeadsConfig(**raw["heads"]),
+            native_channels=raw.get("native_channels", {}),
         )
